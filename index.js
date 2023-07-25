@@ -10,7 +10,7 @@ const app = express();
 const port = 3000;
 
 // Kết nối tới MongoDB
-mongoose.connect('mongodb+srv://thanhvaccn:2fxcWOEVTiIUorbc@moclaw.h2dg2om.mongodb.net/?retryWrites=true&w=majority', {
+mongoose.connect('mongodb+srv://bookapplication:iojBUlI2FOjVdaaq@bookapplication.ehzaka1.mongodb.net/?retryWrites=true&w=majority', {
 	useNewUrlParser: true,
 	useUnifiedTopology: true,
 })
