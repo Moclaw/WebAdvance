@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Trang chủ</title>
+	<style>
+		/* CSS cho trang chủ */
+		body {
+			font-family: Arial, sans-serif;
+			margin: 20px;
+			background-color: #f2f2f2;
+		}
+
+		.container {
+			max-width: 100%;
+			margin: auto;
+			padding: 20px;
+			background-color: #fff;
+			box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+			border-radius: 8px;
+			height: 60vh;
+		}
+
+		h1 {
+			text-align: center;
+			margin-bottom: 20px;
+		}
+
+		/* CSS cho thanh nav */
+		.navbar {
+			background-color: #333;
+			overflow: hidden;
+			border-radius: 8px;
+			margin-bottom: 20px;
+		}
+
+		.navbar a {
+			float: left;
+			display: block;
+			color: white;
+			text-align: center;
+			padding: 14px 16px;
+			text-decoration: none;
+		}
+
+		.navbar a:not(:nth-last-child(2)):hover {
+			background-color: #111;
+		}
+
+		/* CSS cho popup */
+		.popup-container {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.5);
+			z-index: 1;
+		}
+
+		.popup-content {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background-color: white;
+			padding: 20px;
+			width: 80%;
+			max-width: 400px;
+			border-radius: 8px;
+			box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+		}
+
+		/* Định dạng popup content */
+		.popup-content h2 {
+			margin-bottom: 10px;
+		}
+
+		.popup-content label {
+			display: block;
+			margin-bottom: 5px;
+		}
+
+		.popup-content input {
+			width: 100%;
+			margin-bottom: 10px;
+		}
+
+		.popup-content button {
+			width: 100%;
+			background-color: #007bff;
+			color: white;
+			border: none;
+			padding: 8px;
+			border-radius: 4px;
+			cursor: pointer;
+		}
+
+		.success-message {
+			background-color: #dff0d8;
+			color: #3c763d;
+			border: 1px solid #d6e9c6;
+			padding: 10px;
+			margin-top: 10px;
+			border-radius: 4px;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<!-- Thanh nav cho admin -->
+		<div class="navbar" id="adminNav" style="display:none;">
+			<a href="./index.html">Trang chủ</a>
+			<a href="./users">Danh sách người dùng</a>
+			<a href="./booksList">Danh sách sách</a>
+			<a href="./cart">Danh sách đơn hàng</a>
+			<a onclick="showUserInfoPopup()">Xin chào, <b id="usernamePlaceholder"></b><a id="logoutButton"
+					style="display:none;" onclick="logout()">Đăng xuất</a></a>
+		</div>
+
+		<!-- Thanh nav cho user -->
+		<div class="navbar" id="userNav" style="display:none;">
+			<a href="/">Trang chủ</a>
+			<a href="./booksList">Danh sách sách</a>
+			<a href="./cart">Danh sách đơn hàng</a>
+		</div>
+
+		<!-- Hiển thị nội dung trang chủ -->
+		<h1>Trang chủ</h1>
+		<p id="noitice">
+			<span id="notLoggedInMessage">Bạn chưa đăng nhập. Hãy đăng nhập hoặc đăng ký để tiếp tục.</span>
+			<span id="loggedInMessage" style="display:none;">Bạn đã đăng nhập. Hãy trải nghiệm những chức năng ở các tab
+				trên</span>
+		</p>
+		<div id="popup">
+			<!-- Popup đăng nhập -->
+			<div class="popup-container" id="loginPopup">
+				<div class="popup-content">
+					<h2>Đăng nhập</h2>
+					<label for="username">Tên người dùng:</label>
+					<input type="text" id="username" required>
+
+					<label for="password">Mật khẩu:</label>
+					<input type="password" id="password" required>
+
+					<button onclick="login()">Đăng nhập</button>
+					<button onclick="showSignupPopup()">Đăng ký</button> <!-- Thêm nút Đăng ký -->
+					<button onclick="closePopup()">Đóng</button>
+				</div>
+			</div>
+
+			<!-- Popup đăng ký -->
+			<div class="popup-container" id="signupPopup">
+				<div class="popup-content">
+					<h2>Đăng ký</h2>
+					<label for="newUsername">Tên người dùng:</label>
+					<input type="text" id="newUsername" required>
+
+					<label for="newPassword">Mật khẩu:</label>
+					<input type="password" id="newPassword" required>
+
+					<button onclick="signup()">Đăng ký</button>
+					<button onclick="closePopup()">Đóng</button>
+				</div>
+			</div>
+
+			<!-- Hiển thị thông báo khi đăng ký thành công -->
+			<div class="success-message" id="signupSuccessMessage" style="display:none;">Đăng ký tài khoản thành công.
+			</div>
+
+			<!-- Ẩn nút Đăng ký trong trạng thái chưa đăng nhập và ẩn nút Đăng nhập khi đã đăng nhập -->
+			<button id="loginButton" onclick="showLoginPopup()">Đăng nhập</button>
+			<button id="signupButton" onclick="showSignupPopup()" style="display:none;">Đăng ký</button>
+		</div>
+	</div>
+	<div id="userListContainer"></div>
+	<div class="popup-container" id="userInfoPopup">
+		<div class="popup-content">
+			<h2>Thông tin người dùng</h2>
+			<label for="newUsername">Tên người dùng:</label>
+			<input type="text" id="newUsername" required placeholder="Nhập tên người dùng mới">
+
+			<label for="newPassword">Mật khẩu:</label>
+			<input type="password" id="newPassword" required placeholder="Nhập mật khẩu mới">
+
+			<button onclick="updateUserInfo()">Lưu thay đổi</button>
+			<button onclick="closeUserInfoPopup()">Đóng</button>
+		</div>
+	</div>
+	<script>
+		// Các hàm JavaScript còn lại
+
+		function showLoginPopup() {
+			document.getElementById("loginPopup").style.display = "block";
+		}
+
+		function showSignupPopup() {
+			document.getElementById("signupPopup").style.display = "block";
+		}
+
+		function closePopup() {
+			document.getElementById("loginPopup").style.display = "none";
+			document.getElementById("signupPopup").style.display = "none";
+		}
+
+		function login() {
+			const username = document.getElementById("username").value;
+			const password = document.getElementById("password").value;
+
+			// Gửi yêu cầu đăng nhập đến server (sử dụng fetch API hoặc axios)
+			fetch("/login", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ username, password }),
+			})
+				.then((response) => response.json())
+				.then((data) => {
+					if (data.success) {
+						// Đăng nhập thành công
+						document.getElementById("loginPopup").style.display = "none";
+						document.getElementById("notLoggedInMessage").style.display = "none";
+						document.getElementById("usernamePlaceholder").innerText = data.username || data.userId;
+						document.getElementById("loggedInMessage").style.display = "block";
+						document.getElementById("loginButton").style.display = "none";
+						document.getElementById("logoutButton").style.display = "block";
+						document.getElementById("noitice").style.display = "none";
+						document.getElementById("adminNav").style.display = "none";
+						document.getElementById("userNav").style.display = "none";
+
+						const userRole = data.role;
+						localStorage.setItem("token", data.token);
+						localStorage.setItem("role", userRole);
+						localStorage.setItem("id", data.userId);
+
+						if (userRole === "admin") {
+							document.getElementById("adminNav").style.display = "block";
+						} else if (userRole === "user") {
+							document.getElementById("userNav").style.display = "block";
+						}
+					} else {
+						alert(data.message);
+					}
+				})
+				.catch((error) => {
+					console.error("Đã xảy ra lỗi khi đăng nhập:", error);
+				});
+		}
+
+		function signup() {
+			const newUsername = document.getElementById("newUsername").value;
+			const newPassword = document.getElementById("newPassword").value;
+
+			// Gửi yêu cầu đăng ký đến server (sử dụng fetch API hoặc axios)
+			fetch("/register", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ username: newUsername, password: newPassword }),
+			})
+				.then((response) => response.json())
+				.then((data) => {
+					if (data.success) {
+						// Đăng ký thành công
+						document.getElementById("signupSuccessMessage").style.display = "block";
+					} else {
+						// Đăng ký thất bại
+						alert(data.message);
+					}
+				})
+				.catch((error) => {
+					console.error("Đã xảy ra lỗi khi đăng ký:", error);
+				});
+		}
+
+		function logout() {
+			// Xử lý logic đăng xuất ở đây
+			// Sau khi đăng xuất, hiển thị lại nút Đăng nhập hoặc Đăng ký tùy vào trạng thái đăng nhập
+			document.getElementById("loggedInMessage").style.display = "none";
+			document.getElementById("notLoggedInMessage").style.display = "block";
+			document.getElementById("usernamePlaceholder").innerText = "";
+			document.getElementById("adminNav").style.display = "none";
+			document.getElementById("userNav").style.display = "none";
+			document.getElementById("loginButton").style.display = "block";
+			document.getElementById("signupButton").style.display = "none";
+		}
+		// Hiển thị popup thông tin người dùng và điền thông tin hiện tại vào input
+
+		// Đóng popup thông tin người dùng
+		function closeUserInfoPopup() {
+			document.getElementById("userInfoPopup").style.display = "none";
+		}
+
+		// Hàm cập nhật thông tin người dùng
+		function updateUserInfo() {
+			const newUsername = document.getElementById("newUsername").value;
+			const newPassword = document.getElementById("newPassword").value;
+
+			// Gửi yêu cầu cập nhật thông tin người dùng đến server (sử dụng fetch API hoặc axios)
+
+			fetch('/users/' + localStorage.getItem("id"), {
+				method: "PUT",
+				headers: {
+					"Content-Type": "application/json",
+					"Authorization": "Bearer " + localStorage.getItem("token"),
+				},
+				body: JSON.stringify({ username: newUsername, password: newPassword }),
+			}).then((response) => response.json())
+				.then((data) => {
+					if (data.success) {
+						// Cập nhật thông tin người dùng thành công
+						document.getElementById("userInfoPopup").style.display = "none";
+					} else {
+						// Cập nhật thông tin người dùng thất bại
+						alert(data.message);
+					}
+				})
+				.catch((error) => {
+					console.error("Đã xảy ra lỗi khi cập nhật thông tin người dùng:", error);
+				});
+
+			// Đóng popup sau khi cập nhật thành công
+			closeUserInfoPopup();
+		}
+		// Hiển thị popup thông tin người dùng
+		function showUserInfoPopup() {
+			fetch('/me', {
+				method: "GET",
+				headers: {
+					"Content-Type": "application/json",
+					"Authorization": "Bearer " + localStorage.getItem("token"),
+				}
+			}).then((response) => response.json())
+				.then((data) => {
+					if (data.success) {
+						document.getElementById("newUsername").value = data.username;
+						document.getElementById("newPassword").value = data.password;
+						document.getElementById("userInfoPopup").style.display = "block";
+					} else {
+						alert(data.message);
+					}
+				})
+				.catch((error) => {
+					console.error("Đã xảy ra lỗi khi lấy thông tin người dùng:", error);
+				});
+		}
+
+		// Đóng popup thông tin người dùng
+		function closeUserInfoPopup() {
+			document.getElementById("userInfoPopup").style.display = "none";
+		}
+	</script>
+</body>
+
+</html>

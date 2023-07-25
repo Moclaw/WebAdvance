@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Danh sách người dùng</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			margin: 20px;
+			background-color: #f2f2f2;
+		}
+
+		.container {
+			max-width: 1000px;
+			/* Tăng độ rộng của container cho phù hợp với màn hình */
+			margin: auto;
+			padding: 20px;
+			background-color: #fff;
+			box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+			border-radius: 8px;
+		}
+
+		h1 {
+			text-align: center;
+			margin-bottom: 20px;
+		}
+
+		.user-list {
+			margin-bottom: 20px;
+		}
+
+		.user-item {
+			margin-bottom: 10px;
+			padding: 10px;
+			border: 1px solid #ddd;
+			border-radius: 4px;
+		}
+
+		.user-item span {
+			font-weight: bold;
+		}
+
+		.btn-container {
+			text-align: center;
+			margin-bottom: 20px;
+			/* Dãn cách giữa danh sách người dùng và nút "Thêm" */
+		}
+
+		.btn {
+			background-color: #007bff;
+			color: white;
+			border: none;
+			padding: 10px 20px;
+			/* Giảm độ dài và cao của nút để nó nhìn hấp dẫn hơn */
+			border-radius: 4px;
+			cursor: pointer;
+			margin-right: 10px;
+			/* Dãn cách giữa các nút */
+		}
+
+		.btn:last-child {
+			margin-right: 0;
+			/* Loại bỏ khoảng cách bên phải của nút cuối cùng */
+		}
+
+		.btn:hover {
+			background-color: #0056b3;
+		}
+
+		/* CSS cho popup */
+		.popup-container {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.5);
+			z-index: 1;
+		}
+
+		.popup-content {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background-color: white;
+			padding: 20px;
+			width: 80%;
+			max-width: 400px;
+			border-radius: 8px;
+			box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+		}
+
+		/* Định dạng popup content */
+		.popup-content h2 {
+			margin-bottom: 10px;
+		}
+
+		.popup-content label {
+			display: block;
+			margin-bottom: 5px;
+		}
+
+		.popup-content input {
+			width: 100%;
+			margin-bottom: 10px;
+		}
+
+		.popup-content button {
+			width: 100%;
+			background-color: #007bff;
+			color: white;
+			border: none;
+			padding: 8px;
+			border-radius: 4px;
+			cursor: pointer;
+		}
+
+		.popup-content button:last-child {
+			margin-top: 10px;
+			/* Dãn cách giữa nút "Lưu" và "Đóng" */
+		}
+
+		.popup-content button:hover {
+			background-color: #0056b3;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<h1>Danh sách người dùng</h1>
+		<div class="user-list" id="userListContainer">
+			<!-- Danh sách người dùng sẽ được hiển thị tại đây -->
+		</div>
+		<div class="btn-container">
+			<button class="btn" onclick="showAddUserPopup()">Thêm</button>
+		</div>
+	</div>
+
+	<!-- Popup Thêm người dùng mới -->
+	<div class="popup-container" id="addUserPopup">
+		<div class="popup-content">
+			<h2>Thêm người dùng</h2>
+			<label for="newUsername">Tên người dùng:</label>
+			<input type="text" id="newUsername" required>
+
+			<label for="newPassword">Mật khẩu:</label>
+			<input type="password" id="newPassword" required>
+
+			<label for="newRole">Quyền:</label>
+			<input type="text" id="newRole" required>
+
+			<button onclick="addUser()">Thêm</button>
+			<button onclick="closePopup()">Đóng</button>
+		</div>
+	</div>
+
+	<!-- Popup Sửa thông tin người dùng -->
+	<div class="popup-container" id="editUserPopup">
+		<div class="popup-content">
+			<h2>Sửa thông tin người dùng</h2>
+			<input type="hidden" id="editUserId">
+
+			<label for="editUsername">Tên người dùng:</label>
+			<input type="text" id="editUsername" required>
+
+			<label for="editPassword">Mật khẩu:</label>
+			<input type="password" id="editPassword" required>
+
+			<label for="editRole">Quyền:</label>
+			<select id="editRole" required>
+				<option value="admin">admin</option>
+				<option value="user">user</option>
+			</select>
+
+			<button onclick="saveEditedUser()">Lưu</button>
+			<button onclick="closePopup()">Đóng</button>
+		</div>
+	</div>
+
+	<!-- Đặt mã JavaScript dưới thẻ </body> -->
+	<script>
+		// Hàm để lấy danh sách người dùng từ API và hiển thị lên giao diện
+		function getUserList() {
+			fetch("/usersAll")
+				.then((response) => response.json())
+				.then((data) => {
+					if (data) {
+						const userListContainer = document.getElementById("userListContainer");
+						userListContainer.innerHTML = "";
+
+						data.forEach((user) => {
+							const userItem = document.createElement("div");
+							userItem.classList.add("user-item");
+							userItem.innerHTML = `
+              <span>ID người dùng:</span> ${user._id}<br>
+              <span>Tên người dùng:</span> ${user.username}<br>
+              <span>Mật khẩu:</span> ${user.password}<br>
+              <span>Quyền:</span> ${user.role}
+              <button onclick="showEditUserPopup('${user._id}', '${user.username}', '${user.password}', '${user.role}')">Sửa</button>
+              <button onclick="deleteUser('${user._id}')">Xóa</button>
+            `;
+
+							userListContainer.appendChild(userItem);
+						});
+					}
+				})
+				.catch((error) => {
+					console.error("Đã xảy ra lỗi khi lấy danh sách người dùng:", error);
+				});
+		}
+
+		// Gọi hàm để lấy danh sách người dùng khi trang được tải (chỉ admin mới có quyền)
+		getUserList();
+
+		function showAddUserPopup() {
+			document.getElementById("addUserPopup").style.display = "block";
+		}
+
+		function addUser() {
+			const newUsername = document.getElementById("newUsername").value;
+			const newPassword = document.getElementById("newPassword").value;
+			const newRole = document.getElementById("newRole").value;
+
+			// Gửi yêu cầu thêm người dùng mới đến server (sử dụng fetch API hoặc axios)
+			fetch("/users", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"Authorization": "Bearer " + localStorage.getItem("token"),
+				},
+				body: JSON.stringify({ username: newUsername, password: newPassword, role: newRole }),
+			})
+				.then((response) => response.json())
+				.then((data) => {
+					if (data.success) {
+						// Thêm người dùng thành công, hiển thị thông báo hoặc thực hiện các thao tác khác
+						alert("Đã thêm người dùng mới thành công.");
+						// Sau khi thêm thành công, cập nhật lại danh sách người dùng
+						getUserList();
+						// Đóng popup Thêm người dùng
+						closePopup();
+					} else {
+						// Thêm người dùng thất bại, hiển thị thông báo hoặc xử lý lỗi khác
+						alert(data.message);
+					}
+				})
+				.catch((error) => {
+					console.error("Đã xảy ra lỗi khi thêm người dùng:", error);
+				});
+		}
+
+		function showEditUserPopup(userId, username, password, role) {
+			// Điền thông tin người dùng hiện tại vào các input trong popup Sửa thông tin
+			document.getElementById("editUserId").value = userId;
+			document.getElementById("editUsername").value = username;
+			document.getElementById("editPassword").value = password;
+			document.getElementById("editRole").value = role;
+
+			document.getElementById("editUserPopup").style.display = "block";
+		}
+
+		function saveEditedUser() {
+			const userId = document.getElementById("editUserId").value;
+			const editedUsername = document.getElementById("editUsername").value;
+			const editedPassword = document.getElementById("editPassword").value;
+			const editedRole = document.getElementById("editRole").value;
+
+			// Gửi yêu cầu sửa thông tin người dùng đến server (sử dụng fetch API hoặc axios)
+			fetch(`/users/${userId}`, {
+				method: "PUT",
+				headers: {
+					"Content-Type": "application/json",
+					"Authorization": "Bearer " + localStorage.getItem("token"),
+				},
+				body: JSON.stringify({ username: editedUsername, password: editedPassword, role: editedRole }),
+			})
+				.then((response) => response.json())
+				.then((data) => {
+					if (data.success) {
+						// Sửa thông tin người dùng thành công, hiển thị thông báo hoặc thực hiện các thao tác khác
+						alert("Đã sửa thông tin người dùng thành công.");
+						// Sau khi sửa thành công, cập nhật lại danh sách người dùng
+						getUserList();
+						// Đóng popup Sửa thông tin người dùng
+						closePopup();
+					} else {
+						// Sửa thông tin người dùng thất bại, hiển thị thông báo hoặc xử lý lỗi khác
+						alert(data.message);
+					}
+				})
+				.catch((error) => {
+					console.error("Đã xảy ra lỗi khi sửa thông tin người dùng:", error);
+				});
+		}
+
+		function deleteUser(userId) {
+			if (confirm("Bạn có chắc chắn muốn xóa người dùng này?")) {
+				// Gửi yêu cầu xóa người dùng đến server (sử dụng fetch API hoặc axios)
+				fetch(`/users/${userId}`, {
+					method: "DELETE",
+					headers: {
+						"Authorization": "Bearer " + localStorage.getItem("token"),
+					},
+				})
+					.then((response) => response.json())
+					.then((data) => {
+						if (data.success) {
+							// Xóa người dùng thành công, hiển thị thông báo hoặc thực hiện các thao tác khác
+							alert("Đã xóa người dùng thành công.");
+							// Sau khi xóa thành công, cập nhật lại danh sách người dùng
+							getUserList();
+						} else {
+							// Xóa người dùng thất bại, hiển thị thông báo hoặc xử lý lỗi khác
+							alert(data.message);
+						}
+					})
+					.catch((error) => {
+						console.error("Đã xảy ra lỗi khi xóa người dùng:", error);
+					});
+			}
+		}
+
+		function closePopup() {
+			document.getElementById("addUserPopup").style.display = "none";
+			document.getElementById("editUserPopup").style.display = "none";
+		}
+	</script>
+
+</body>
+
+</html>

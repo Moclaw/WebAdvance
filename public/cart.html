@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Giỏ hàng</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			margin: 20px;
+			background-color: #f2f2f2;
+		}
+
+		.container {
+			max-width: 800px;
+			margin: auto;
+			padding: 20px;
+			background-color: #fff;
+			box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+			border-radius: 8px;
+		}
+
+		h1 {
+			text-align: center;
+			margin-bottom: 20px;
+		}
+
+		.cart-list {
+			margin-bottom: 20px;
+		}
+
+		.cart-item {
+			margin-bottom: 10px;
+			padding: 10px;
+			border: 1px solid #ddd;
+			border-radius: 4px;
+		}
+
+		.cart-item span {
+			font-weight: bold;
+		}
+
+		.total-amount {
+			font-weight: bold;
+			text-align: right;
+		}
+
+		.approval-button,
+		.reject-button,
+		.delete-button {
+			margin-top: 10px;
+			text-align: right;
+		}
+
+		.approval-button button,
+		.reject-button button,
+		.delete-button button {
+			padding: 10px;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			color: white;
+		}
+
+		.approval-button button {
+			background-color: #4CAF50;
+			/* Màu xanh */
+		}
+
+		.approval-button button:hover {
+			background-color: #45a049;
+		}
+
+		.reject-button button {
+			background-color: #FF0000;
+			/* Màu đỏ */
+		}
+
+		.reject-button button:hover {
+			background-color: #ff4d4d;
+		}
+
+		.delete-button button {
+			background-color: #FFA500;
+			/* Màu cam */
+		}
+
+		.delete-button button:hover {
+			background-color: #ff8c1a;
+		}
+
+		/* CSS cho modal popup */
+		.modal {
+			display: none;
+			position: fixed;
+			z-index: 1;
+			left: 0;
+			top: 0;
+			width: 100%;
+			height: 100%;
+			overflow: auto;
+			background-color: rgba(0, 0, 0, 0.4);
+		}
+
+		.modal-content {
+			background-color: #fefefe;
+			margin: 15% auto;
+			padding: 20px;
+			border: 1px solid #888;
+			width: 80%;
+			border-radius: 8px;
+		}
+
+		.close {
+			color: #aaaaaa;
+			float: right;
+			font-size: 28px;
+			font-weight: bold;
+		}
+
+		.close:hover,
+		.close:focus {
+			color: #000;
+			text-decoration: none;
+			cursor: pointer;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<h1>Giỏ hàng</h1>
+		<div class="cart-list" id="cartListContainer">
+			<!-- Danh sách giỏ hàng sẽ được hiển thị tại đây -->
+		</div>
+	</div>
+
+	<!-- Modal popup xác nhận duyệt giỏ hàng -->
+	<div id="approvalModal" class="modal">
+		<div class="modal-content">
+			<span class="close" onclick="closeModal()">&times;</span>
+			<h2>Xác nhận duyệt giỏ hàng</h2>
+			<form id="approvalForm" onsubmit="approveCart(event)">
+				<input type="hidden" id="approvalCartId">
+
+				<p>Bạn có chắc chắn muốn duyệt giỏ hàng này?</p>
+				<button type="submit">Duyệt</button>
+			</form>
+		</div>
+	</div>
+
+	<script>
+		let userRole = localStorage.getItem("role");
+		let cartList = [];
+		let userId = localStorage.getItem("id");
+
+		function getCartList() {
+			if (userRole == "admin") {
+				fetch(`/orders`, {
+					method: "GET",
+					headers: {
+						"Authorization": "Bearer " + localStorage.getItem("token"),
+					},
+				})
+					.then((response) => response.json())
+					.then((data) => {
+						if (data) {
+							cartList = data;
+							renderCartList(cartList);
+						}
+					})
+					.catch((error) => {
+						console.error("Đã xảy ra lỗi khi lấy danh sách giỏ hàng:", error);
+					});
+			}
+			else {
+				fetch('/ordersbyuserid/' + userId, {
+					method: "GET",
+					headers: {
+						"Authorization": "Bearer " + localStorage.getItem("token"),
+					},
+				})
+					.then((response) => response.json())
+					.then((data) => {
+						if (data) {
+							cartList = data;
+							renderCartList(cartList);
+						}
+					})
+					.catch((error) => {
+						console.error("Đã xảy ra lỗi khi lấy danh sách giỏ hàng:", error);
+					});
+			}
+		}
+
+		function renderCartList(carts) {
+			const cartListContainer = document.getElementById("cartListContainer");
+			cartListContainer.innerHTML = "";
+
+			carts.forEach((cart) => {
+				const cartItem = document.createElement("div");
+				cartItem.classList.add("cart-item");
+				cartItem.innerHTML = `
+				<span>ID giỏ hàng:</span> ${cart._id}<br>
+				<span>Tên người dùng:</span> ${cart.user.username}<br>
+				<span>Trạng thái:</span> ${cart.status === "approved" ? 'Đã duyệt' : cart.status === "pending" ? 'Chưa duyệt' : 'Từ Chối'}<br>
+				<span>Sách trong giỏ:</span><br>
+				${renderBooksInCart(cart.books)}<br>
+				<span>Tổng số tiền:</span> ${cart.totalAmount}<br>
+			`;
+
+				// Nếu là quản trị viên, hiển thị nút "Duyệt giỏ hàng" và "Từ chối giỏ hàng"
+				if (userRole === "admin") {
+					const approvalButton = document.createElement("div");
+					approvalButton.classList.add("approval-button");
+					approvalButton.innerHTML = `
+					<button onclick="openApprovalModal('${cart._id}')">Duyệt giỏ hàng</button>
+				`;
+					cartItem.appendChild(approvalButton);
+
+					if (cart.status === "approved") {
+						const rejectButton = document.createElement("div");
+						rejectButton.classList.add("reject-button");
+						rejectButton.innerHTML = `
+						<button onclick="rejectCart('${cart._id}')">Từ chối</button>
+					`;
+						cartItem.appendChild(rejectButton);
+					}
+				}
+
+				// Nếu là người dùng, hiển thị nút "Xóa giỏ hàng"
+				if (userRole !== "admin") {
+					const deleteButton = document.createElement("div");
+					deleteButton.classList.add("delete-button");
+					deleteButton.innerHTML = `
+					<button onclick="deleteCart('${cart._id}')">Xóa giỏ hàng</button>
+				`;
+					cartItem.appendChild(deleteButton);
+				}
+
+				cartListContainer.appendChild(cartItem);
+			});
+		}
+
+		function renderBooksInCart(books) {
+			let bookListHTML = "";
+			books.forEach((book) => {
+				bookListHTML += `- ${book.title}<br>`;
+			});
+			return bookListHTML;
+		}
+
+		// Hàm để mở modal xác nhận duyệt giỏ hàng
+		function openApprovalModal(cartId) {
+			const modal = document.getElementById("approvalModal");
+			const approvalCartIdInput = document.getElementById("approvalCartId");
+			approvalCartIdInput.value = cartId;
+			modal.style.display = "block";
+		}
+
+		// Hàm để đóng modal xác nhận duyệt giỏ hàng
+		function closeModal() {
+			const modal = document.getElementById("approvalModal");
+			modal.style.display = "none";
+		}
+
+		// Hàm để duyệt giỏ hàng
+		function approveCart(event) {
+			event.preventDefault();
+			const cartId = document.getElementById("approvalCartId").value;
+			fetch(`/orders/approve/${cartId}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + localStorage.getItem('token'),
+				},
+				body: JSON.stringify({ approved: true }),
+			})
+				.then((response) => response.json())
+				.then((data) => {
+					closeModal();
+					getCartList();
+				})
+				.catch((error) => {
+					console.error("Đã xảy ra lỗi khi duyệt giỏ hàng:", error);
+				});
+		}
+
+		// Hàm để từ chối giỏ hàng
+		function rejectCart(cartId) {
+			fetch(`/orders/reject/${cartId}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + localStorage.getItem('token'),
+				},
+				body: JSON.stringify({ approved: false }),
+			})
+				.then((response) => response.json())
+				.then((data) => {
+					closeModal();
+					getCartList();
+				})
+				.catch((error) => {
+					console.error("Đã xảy ra lỗi khi từ chối giỏ hàng:", error);
+				});
+		}
+
+		// Hàm để xóa giỏ hàng
+		function deleteCart(cartId) {
+			fetch(`/orders/${cartId}`, {
+				method: 'DELETE',
+				headers: {
+					'Authorization': 'Bearer ' + localStorage.getItem('token'),
+				},
+			})
+				.then((response) => response.json())
+				.then((data) => {
+					if (data.success) {
+						alert("Đã xóa giỏ hàng thành công.");
+						getCartList();
+					}
+					else {
+						alert("Đã xảy ra lỗi khi xóa giỏ hàng.");
+					}
+				})
+				.catch((error) => {
+					console.error('Đã xảy ra lỗi khi xóa giỏ hàng:', error);
+				});
+		}
+
+		// Gọi hàm để lấy danh sách giỏ hàng khi trang được tải
+		getCartList();
+	</script>
+</body>
+
+</html>

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Danh sách sách</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			margin: 20px;
+			background-color: #f2f2f2;
+		}
+
+		.container {
+			max-width: 800px;
+			margin: auto;
+			padding: 20px;
+			background-color: #fff;
+			box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+			border-radius: 8px;
+		}
+
+		h1 {
+			text-align: center;
+			margin-bottom: 20px;
+		}
+
+		.book-list {
+			margin-bottom: 20px;
+		}
+
+		.book-item {
+			margin-bottom: 10px;
+			padding: 10px;
+			border: 1px solid #ddd;
+			border-radius: 4px;
+		}
+
+		.book-item span {
+			font-weight: bold;
+		}
+
+		.pagination {
+			text-align: center;
+			margin-top: 20px;
+		}
+
+		.pagination button {
+			margin: 0 5px;
+			padding: 5px 10px;
+			cursor: pointer;
+		}
+
+		.search-container {
+			margin-bottom: 20px;
+			text-align: center;
+		}
+
+		.search-container input {
+			width: 300px;
+			padding: 5px;
+			border-radius: 4px;
+		}
+
+		/* CSS cho modal popup */
+		.modal {
+			display: none;
+			position: fixed;
+			z-index: 1;
+			left: 0;
+			top: 0;
+			width: 100%;
+			height: 100%;
+			overflow: auto;
+			background-color: rgba(0, 0, 0, 0.4);
+		}
+
+		.modal-content {
+			background-color: #fefefe;
+			margin: 15% auto;
+			padding: 20px;
+			border: 1px solid #888;
+			width: 80%;
+			border-radius: 8px;
+		}
+
+		.close {
+			color: #aaaaaa;
+			float: right;
+			font-size: 28px;
+			font-weight: bold;
+		}
+
+		.close:hover,
+		.close:focus {
+			color: #000;
+			text-decoration: none;
+			cursor: pointer;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<h1>Danh sách sách</h1>
+		<div class="search-container">
+			<input type="text" placeholder="Tìm kiếm sách..." id="searchInput">
+			<button onclick="searchBook()">Tìm kiếm</button>
+		</div>
+		<button onclick="openAddBookModal()">Thêm</button>
+		<button onclick="goToCart()" id="cart">Giỏ Hàng</button>
+		<div class="book-list" id="bookListContainer">
+			<!-- Danh sách sách sẽ được hiển thị tại đây -->
+		</div>
+		<div class="pagination" id="paginationContainer">
+			<!-- Phân trang sẽ được hiển thị tại đây -->
+		</div>
+	</div>
+
+	<!-- Thêm modal popup thêm mới sách -->
+	<div id="addBookModal" class="modal">
+		<div class="modal-content">
+			<span class="close" onclick="closeAddBookModal()">&times;</span>
+			<h2>Thêm mới sách</h2>
+			<form id="addBookForm" onsubmit="addBook(event)">
+				<label for="title">Tên sách:</label>
+				<input type="text" id="title" required><br>
+
+				<label for="author">Tác giả:</label>
+				<input type="text" id="author" required><br>
+
+				<label for="price">Giá:</label>
+				<input type="number" id="price" required><br>
+
+				<label for="file">Ảnh bìa(link):</label>
+				<input type="text" id="file" required><br>
+
+				<button type="submit">Thêm mới</button>
+			</form>
+		</div>
+	</div>
+
+	<div id="editBookModal" class="modal">
+		<div class="modal-content">
+			<span class="close" onclick="closeEditBookModal()">&times;</span>
+			<h2>Sửa thông tin sách</h2>
+			<form id="editBookForm" onsubmit="editBook(event)">
+				<input type="hidden" id="editBookId">
+
+				<label for="editTitle">Tên sách:</label>
+				<input type="text" id="editTitle" required><br>
+
+				<label for="editAuthor">Tác giả:</label>
+				<input type="text" id="editAuthor" required><br>
+
+				<label for="editPrice">Giá:</label>
+				<input type="number" id="editPrice" required><br>
+
+				<label for="editFile">Ảnh bìa(link):</label>
+				<input type="text" id="editFile" required><br>
+
+				<button type="submit">Lưu</button>
+			</form>
+		</div>
+	</div>
+
+	<script>
+		let userRole = localStorage.getItem("role");
+		let bookList = [];
+		let currentPage = 1;
+		const itemsPerPage = 5;
+
+		function openAddBookModal() {
+			const modal = document.getElementById("addBookModal");
+			modal.style.display = "block";
+		}
+
+		function goToCart() {
+			window.location.href = "/carts";
+		}
+
+		function closeAddBookModal() {
+			const modal = document.getElementById("addBookModal");
+			modal.style.display = "none";
+		}
+
+		function openEditBookModal(bookId) {
+			const modal = document.getElementById("editBookModal");
+			modal.style.display = "block";
+			fetch('/books/' + bookId, {
+				method: 'GET',
+				headers: {
+					"Authorization": "Bearer " + localStorage.getItem("token"),
+				},
+			})
+				.then((response) => response.json())
+				.then((data) => {
+					document.getElementById("editBookId").value = data._id;
+					document.getElementById("editTitle").value = data.title;
+					document.getElementById("editAuthor").value = data.author;
+					document.getElementById("editPrice").value = data.price;
+				})
+				.catch((error) => {
+					console.error("Đã xảy ra lỗi khi lấy thông tin sách:", error);
+				});
+		}
+
+		function closeEditBookModal() {
+			const modal = document.getElementById("editBookModal");
+			modal.style.display = "none";
+		}
+
+		function getBookList(page = 1) {
+			currentPage = page;
+			const userRole = localStorage.getItem("role");
+			const addToCartButton = document.getElementById("cart");
+			if (userRole === "user") {
+				addToCartButton.style.display = "block";
+			} else {
+				addToCartButton.style.display = "none";
+			}
+
+			fetch(`/books?page=${page}`, {
+				method: "GET",
+				headers: {
+					"Authorization": "Bearer " + localStorage.getItem("token"),
+				},
+			})
+				.then((response) => response.json())
+				.then((data) => {
+					if (data) {
+						bookList = data.books;
+						renderBookList(bookList);
+						renderPagination(data.totalPages);
+					}
+				})
+				.catch((error) => {
+					console.error("Đã xảy ra lỗi khi lấy danh sách sách:", error);
+				});
+		}
+
+		function addToCart(bookId) {
+			const book = bookList.find((book) => book._id === bookId);
+
+			fetch('/orders', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + localStorage.getItem('token'),
+				},
+				body: JSON.stringify({
+					books: [bookId], // Gửi danh sách ID sách đơn hàng
+					totalAmount: book.price,
+					userId: localStorage.getItem('id'),
+				}),
+			})
+				.then((response) => response.json())
+				.then((data) => {
+					if (data.success === true) {
+						alert('Đã thêm sách vào giỏ hàng thành công!');
+						updateCart();
+					}
+					else {
+						alert('thêm chưa thành công')
+					}
+				})
+				.catch((error) => {
+					console.error('Đã xảy ra lỗi khi thêm sách vào giỏ hàng:', error);
+					// Hiển thị thông báo lỗi (nếu cần)
+				});
+		}
+
+		function updateCart() {
+
+
+		}
+
+		function editBook(event) {
+			const bookId = event;
+			const title = document.getElementById("editTitle").value;
+			const author = document.getElementById("editAuthor").value;
+			const price = document.getElementById("editPrice").value;
+			const file = document.getElementById("editFile").value;
+
+			console.log(bookId);
+
+			const bookData = {
+				title,
+				author,
+				price,
+				file,
+			};
+
+			fetch(`/books/${bookId}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + localStorage.getItem('token'),
+				},
+				body: JSON.stringify(bookData),
+			})
+				.then((response) => response.json())
+				.then((data) => {
+					closeEditBookModal();
+					getBookList(currentPage);
+				})
+				.catch((error) => {
+					console.error("Đã xảy ra lỗi khi sửa thông tin sách:", error);
+				});
+		}
+
+		function deleteBook(bookId) {
+			fetch('/books/' + bookId, {
+				method: 'DELETE',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + localStorage.getItem('token'),
+				},
+			}).then((response) => {
+				if (response.status === 200) {
+					getBookList(currentPage);
+				}
+			});
+		}
+
+		function addBook(event) {
+			event.preventDefault();
+			const title = document.getElementById("title").value;
+			const author = document.getElementById("author").value;
+			const price = document.getElementById("price").value;
+			// Thêm xử lý file ảnh nếu cần
+			const file = document.getElementById("file").value;
+
+			const bookData = {
+				title,
+				author,
+				price,
+				file,
+			};
+
+			console.log(bookData);
+
+			fetch('/books', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + localStorage.getItem('token'),
+				},
+				body: JSON.stringify(bookData),
+			})
+				.then((response) => response.json())
+				.then((data) => {
+					closeAddBookModal();
+					getBookList(currentPage);
+				})
+				.catch((error) => {
+					console.error("Đã xảy ra lỗi khi thêm mới sách:", error);
+				});
+		}
+
+		function searchBook() {
+			const searchInput = document.getElementById("searchInput");
+			const keyword = searchInput.value;
+
+			// Gửi yêu cầu tìm kiếm sách đến server (sử dụng fetch API hoặc axios)
+			fetch("/books/search?keyword=" + keyword, {
+				method: "GET",
+				headers: {
+					"Authorization": "Bearer " + localStorage.getItem("token"),
+				},
+			})
+				.then((response) => response.json())
+				.then((data) => {
+					if (data) {
+						bookList = data.books;
+						console.log(bookList);
+						renderBookList(bookList); // Render lại danh sách sách
+					}
+				})
+				.catch((error) => {
+					console.error("Đã xảy ra lỗi khi tìm kiếm sách:", error);
+				});
+		}
+
+		function renderBookList(books) {
+			const bookListContainer = document.getElementById("bookListContainer");
+			bookListContainer.innerHTML = "";
+
+			books.forEach((book) => {
+				const bookItem = document.createElement("div");
+				bookItem.classList.add("book-item");
+				bookItem.innerHTML = `
+                    <span>ID sách:</span> ${book._id}<br>
+                    <span>Tên sách:</span> ${book.title}<br>
+                    <span>Tác giả:</span> ${book.author}<br>
+                    <img src="${book.file}" width="100px" height="100px">
+                    <br>
+                    <span>Giá:</span> ${book.price}<br>
+                `;
+
+				// Nếu là người dùng, thêm nút "Thêm vào giỏ hàng"
+				if (userRole === "user") {
+					const addToCartButton = document.createElement("button");
+					addToCartButton.innerText = "Thêm vào giỏ hàng";
+					addToCartButton.addEventListener("click", () => {
+						addToCart(book._id);
+					});
+					bookItem.appendChild(addToCartButton);
+				}
+
+				// Nếu là quản trị viên, thêm nút "Thêm/Xóa/Sửa"
+				if (userRole === "admin") {
+					const editButton = document.createElement("button");
+					editButton.innerText = "Sửa";
+					editButton.addEventListener("click", () => {
+						openEditBookModal(book._id);
+					});
+					bookItem.appendChild(editButton);
+
+					const deleteButton = document.createElement("button");
+					deleteButton.innerText = "Xóa";
+					deleteButton.addEventListener("click", () => {
+						deleteBook(book._id);
+					});
+					bookItem.appendChild(deleteButton);
+				}
+
+				bookListContainer.appendChild(bookItem);
+			});
+		}
+
+		function renderPagination(totalPages) {
+			const paginationContainer = document.getElementById("paginationContainer");
+			paginationContainer.innerHTML = "";
+
+			for (let i = 1; i <= totalPages; i++) {
+				const pageButton = document.createElement("button");
+				pageButton.innerText = i;
+				pageButton.addEventListener("click", () => {
+					getBookList(i);
+				});
+				paginationContainer.appendChild(pageButton);
+			}
+		}
+
+		// Gọi hàm để lấy danh sách sách khi trang được tải
+		getBookList();
+	</script>
+
+</body>
+
+</html>
