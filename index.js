@@ -8,11 +8,10 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 const port = 3000;
-
+mongoose.set('strictQuery', false);
 // Kết nối tới MongoDB
 mongoose.connect('mongodb+srv://bookapplication:iojBUlI2FOjVdaaq@bookapplication.ehzaka1.mongodb.net/?retryWrites=true&w=majority', {
 	useNewUrlParser: true,
-	useUnifiedTopology: true,
 })
 	.then(() => console.log('Đã kết nối tới MongoDB'))
 	.catch((err) => console.error('Lỗi kết nối MongoDB:', err));
